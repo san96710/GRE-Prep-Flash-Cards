@@ -83,6 +83,7 @@ button{font-family:inherit; cursor:pointer;}
 .sync-badge.synced{background:var(--teal); box-shadow:0 0 6px var(--teal);}
 .sync-badge.error, .sync-badge.misconfigured{background:var(--brick);}
 .sync-badge.connecting{background:var(--gold); animation:pulse 1.2s infinite;}
+.sync-text{font-family:var(--font-mono); font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.05em;}
 @keyframes pulse{0%,100%{opacity:1;} 50%{opacity:0.3;}}
 
 main{flex:1; overflow-y:auto; padding:6px 20px 100px;}
@@ -194,6 +195,14 @@ nav.tabs .icon{font-size:17px;}
 }
 .search-input::placeholder{color:var(--text-dim);}
 
+.chip-row{display:flex; gap:6px; overflow-x:auto; padding-bottom:8px; margin-bottom:4px; -webkit-overflow-scrolling:touch;}
+.chip-row::-webkit-scrollbar{display:none;}
+.chip{
+  flex-shrink:0; background:var(--ink-2); border:1px solid var(--ink-3); color:var(--text-dim);
+  border-radius:20px; padding:7px 13px; font-family:var(--font-mono); font-size:11.5px; white-space:nowrap;
+}
+.chip.active{border-color:var(--gold); color:var(--gold); background:rgba(201,166,72,0.1);}
+
 /* ---------- Add / forms ---------- */
 textarea, input[type=text], input[type=time]{
   width:100%; background:var(--ink-2); border:1px solid var(--ink-3); border-radius:var(--radius);
@@ -271,6 +280,7 @@ input:checked + .slider::before{transform:translateX(19px); background:#fff;}
   <div class="brand">Twesha's GRE <span class="mark">PREP</span></div>
   <div style="display:flex; align-items:center; gap:14px;">
     <span id="syncBadge" class="sync-badge" title="Cloud sync status"></span>
+    <span id="syncText" class="sync-text"></span>
     <div class="streak">🔥 <b id="streakNum">0</b> day streak</div>
   </div>
 </div>
@@ -281,7 +291,6 @@ input:checked + .slider::before{transform:translateX(19px); background:#fff;}
   <button data-tab="home" class="active"><span class="icon">◆</span>Home</button>
   <button data-tab="study"><span class="icon">▤</span>Study</button>
   <button data-tab="manage"><span class="icon">≡</span>Words</button>
-  <button data-tab="add"><span class="icon">+</span>Add</button>
   <button data-tab="settings"><span class="icon">⚙</span>Settings</button>
 </nav>
 
@@ -377,7 +386,6 @@ function render(){
   if(currentTab==='home') main.innerHTML = renderHome();
   else if(currentTab==='study') renderStudy();
   else if(currentTab==='manage') renderManage();
-  else if(currentTab==='add') renderAdd();
   else if(currentTab==='settings') renderSettings();
   wireTabHandlers();
 }
@@ -397,20 +405,27 @@ function renderHome(){
     return `<div class="empty-state">
       <div class="glyph">✦</div>
       <div style="font-family:var(--font-display); font-size:19px;">Your deck is empty</div>
-      <p>Head to the Add tab and paste in your GRE word list to get started.</p>
+      <p>Go to Settings → Danger zone to add your first words.</p>
     </div>`;
   }
   return `
     <div class="section-title">Today</div>
     <div class="stat-grid">
-      <div class="stat-card"><div class="num" style="color:var(--gold)">${due}</div><div class="label">Due for review</div></div>
-      <div class="stat-card"><div class="num">${total}</div><div class="label">Total words</div></div>
-      <div class="stat-card"><div class="num" style="color:var(--teal)">${masteredCount()}</div><div class="label">Mastered</div></div>
-      <div class="stat-card"><div class="num" style="color:var(--brick)">${learningCount()}</div><div class="label">Still learning</div></div>
+      <div class="stat-card" id="tileDue" style="cursor:pointer;"><div class="num" style="color:var(--gold)">${due}</div><div class="label">Due for review</div></div>
+      <div class="stat-card" id="tileTotal" style="cursor:pointer;"><div class="num">${total}</div><div class="label">Total words</div></div>
+      <div class="stat-card" id="tileMastered" style="cursor:pointer;"><div class="num" style="color:var(--teal)">${masteredCount()}</div><div class="label">Mastered</div></div>
+      <div class="stat-card" id="tileLearning" style="cursor:pointer;"><div class="num" style="color:var(--brick)">${learningCount()}</div><div class="label">Still learning</div></div>
     </div>
     <button class="cta-primary" id="goStudy" ${due===0?'disabled':''}>${due>0? `Study ${due} word${due===1?'':'s'}` : 'All caught up ✓'}</button>
     <button class="cta-secondary" id="goCram">Cram whole deck instead</button>
-    <div class="callout">Words you get right are spaced out further each time (1 → 3 → 7 → 16 → 32 days). Miss one and it resets to daily review.</div>
+    <div class="callout">
+      Twesha, read the below — this is based on the <b>Leitner system</b>, a spaced-repetition study method.<br><br>
+      <b>How the boxes work:</b> every word sits in a box from 1 to 6, and that box decides when it comes back around.<br><br>
+      <b>Box 1</b> — new or just missed, reviewed daily.<br>
+      <b>Box 2–4</b> — you've gotten it right before; it comes back every 1, 3, then 7 days.<br>
+      <b>Box 5–6</b> — you've gotten it right several times in a row; it's reviewed every 16–32 days and counts as <b>Mastered</b> in your stats.<br><br>
+      Get a word right → it moves up a box and you see it less often. Get it wrong → it drops straight back to Box 1 and you see it daily again until it sticks.
+    </div>
   `;
 }
 
@@ -419,6 +434,14 @@ function wireTabHandlers(){
   if(gs) gs.onclick = ()=>{ startSession(false); switchTab('study'); };
   const gc = document.getElementById('goCram');
   if(gc) gc.onclick = ()=>{ startSession(true); switchTab('study'); };
+  const tD = document.getElementById('tileDue');
+  if(tD) tD.onclick = ()=>{ wordFilter='due'; searchQuery=''; switchTab('manage'); };
+  const tT = document.getElementById('tileTotal');
+  if(tT) tT.onclick = ()=>{ wordFilter='all'; searchQuery=''; switchTab('manage'); };
+  const tM = document.getElementById('tileMastered');
+  if(tM) tM.onclick = ()=>{ wordFilter='mastered'; searchQuery=''; switchTab('manage'); };
+  const tL = document.getElementById('tileLearning');
+  if(tL) tL.onclick = ()=>{ wordFilter='learning'; searchQuery=''; switchTab('manage'); };
 }
 function switchTab(name){
   document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
@@ -549,27 +572,73 @@ function registerStudyToday(){
 
 /* ============ MANAGE / WORD LIST ============ */
 let searchQuery = '';
+let wordFilter = 'all'; // all | due | mastered | learning | box1..box6
+const FILTER_CHIPS = [
+  {id:'all', label:'All'}, {id:'due', label:'Due'},
+  {id:'mastered', label:'Mastered'}, {id:'learning', label:'Learning'},
+  {id:'box1', label:'Box 1'}, {id:'box2', label:'Box 2'}, {id:'box3', label:'Box 3'},
+  {id:'box4', label:'Box 4'}, {id:'box5', label:'Box 5'}, {id:'box6', label:'Box 6'}
+];
+function formatShortDate(dateStr){
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const d = new Date(dateStr + 'T00:00:00');
+  return `${months[d.getMonth()]} ${d.getDate()}`;
+}
+function matchesFilter(w, t){
+  if(wordFilter==='due') return w.nextReview<=t;
+  if(wordFilter==='mastered') return w.box>=5;
+  if(wordFilter==='learning') return w.box<5;
+  if(wordFilter.startsWith('box')) return w.box === parseInt(wordFilter.slice(3));
+  return true; // all
+}
 function renderManage(){
   const main = document.getElementById('main');
   if(DATA.words.length===0){
     main.innerHTML = `<div class="empty-state"><div class="glyph">✦</div><div style="font-family:var(--font-display); font-size:19px;">No words yet</div><p>Words you add will show up here, organized by review box.</p></div>`;
     return;
   }
+  main.innerHTML = `
+    <div class="chip-row" id="chipRow"></div>
+    <input class="search-input" id="searchBox" placeholder="Search words or meanings…" value="${escapeHtml(searchQuery)}">
+    <div id="resultsWrap"></div>
+  `;
+  renderChips();
+  const searchBox = document.getElementById('searchBox');
+  searchBox.oninput = (e)=>{ searchQuery = e.target.value.toLowerCase(); updateResults(); };
+  updateResults();
+}
+function renderChips(){
+  const row = document.getElementById('chipRow');
+  if(!row) return;
+  row.innerHTML = FILTER_CHIPS.map(c=>
+    `<button class="chip ${wordFilter===c.id?'active':''}" data-id="${c.id}">${c.label}</button>`
+  ).join('');
+  row.querySelectorAll('.chip').forEach(btn=>{
+    btn.onclick = ()=>{
+      wordFilter = btn.dataset.id;
+      renderChips();
+      updateResults();
+    };
+  });
+}
+function updateResults(){
+  const wrap = document.getElementById('resultsWrap');
+  if(!wrap) return;
+  const t = todayStr();
   const filtered = DATA.words
+    .filter(w => matchesFilter(w, t))
     .filter(w => !searchQuery || w.word.toLowerCase().includes(searchQuery) || w.meaning.toLowerCase().includes(searchQuery))
     .sort((a,b)=> a.word.localeCompare(b.word));
-  main.innerHTML = `
-    <input class="search-input" id="searchBox" placeholder="Search words or meanings…" value="${escapeHtml(searchQuery)}">
+  wrap.innerHTML = `
     <div class="section-title">${filtered.length} of ${DATA.words.length} words</div>
-    <div id="listWrap">${filtered.map(rowHtml).join('') || '<p style="color:var(--text-dim); font-size:13px;">No matches.</p>'}</div>
+    <div>${filtered.map(rowHtml).join('') || '<p style="color:var(--text-dim); font-size:13px;">No matches.</p>'}</div>
   `;
-  document.getElementById('searchBox').oninput = (e)=>{ searchQuery = e.target.value.toLowerCase(); renderManage(); };
   filtered.forEach(w=>{
     const del = document.getElementById('del-'+w.id);
     if(del) del.onclick = ()=>{
       if(confirm(`Delete "${w.word}"?`)){
         DATA.words = DATA.words.filter(x=>x.id!==w.id);
-        saveData(); renderManage();
+        saveData(); updateResults();
       }
     };
   });
@@ -579,16 +648,15 @@ function rowHtml(w){
   return `<div class="word-row">
     <span class="tabdot" style="background:${TAB_COLORS[w.box]}"></span>
     <div class="info"><div class="w">${escapeHtml(w.word)}</div><div class="m">${escapeHtml(w.meaning)}</div></div>
-    <div class="meta">BOX ${w.box}<br>${due? '<span style="color:var(--gold)">due</span>' : w.nextReview.slice(5)}</div>
+    <div class="meta">BOX ${w.box}<br>${due? '<span style="color:var(--gold)">due</span>' : formatShortDate(w.nextReview)}</div>
     <button class="del" id="del-${w.id}">✕</button>
   </div>`;
 }
 
-/* ============ ADD WORDS ============ */
+/* ============ ADD WORDS (lives inside Settings > Danger zone) ============ */
 let importDelim = 'auto';
-function renderAdd(){
-  const main = document.getElementById('main');
-  main.innerHTML = `
+function renderAddForm(wrap){
+  wrap.innerHTML = `
     <div class="section-title">Bulk import</div>
     <p style="font-size:12.5px; color:var(--text-dim); line-height:1.5;">Upload a .txt or .csv file, or paste directly — one word per line, using a dash, colon, comma or tab between the word and its meaning. Words already in your deck are skipped automatically, so re-uploading a growing file each day is safe.</p>
     <label style="margin-top:10px;">Upload a file</label>
@@ -688,21 +756,32 @@ function renderSettings(){
       <div><div class="t">Status</div><div class="d">${syncStatusLabel()}</div></div>
     </div>
     <button class="cta-secondary" id="syncNowBtn">Sync now</button>
+    <div class="callout">Twesha — once you're using this on another device, tap <b>Sync now</b> here first to pull down your latest words and progress before you start studying.</div>
 
     <div class="section-title" style="margin-top:26px;">Backup</div>
-    <p style="font-size:12.5px; color:var(--text-dim);">Your data lives in your Firestore project. It's still worth keeping an occasional copy — paste it back in below to restore.</p>
+    <p style="font-size:12.5px; color:var(--text-dim);">Your data lives in your Firestore project. It's still worth keeping an occasional copy.</p>
     <button class="cta-secondary" id="exportBtn">Show backup JSON</button>
     <div class="backup-box" id="backupBox" style="display:none;"></div>
-    <label style="margin-top:16px;">Restore from backup JSON</label>
-    <textarea id="restoreText" style="min-height:90px;" placeholder="Paste backup JSON here"></textarea>
-    <button class="cta-secondary" id="restoreBtn">Restore</button>
 
-    <div class="section-title" style="margin-top:26px;">Deck</div>
-    <div class="setting-row" style="border-bottom:none;">
-      <div><div class="t">Reset all progress</div><div class="d">Keeps your words, resets every card back to Box 1.</div></div>
+    <div class="section-title" style="margin-top:26px;">Danger zone</div>
+    <div id="dangerLocked">
+      <p style="font-size:12.5px; color:var(--text-dim); line-height:1.5;">Restoring a backup, resetting progress, or deleting your deck can't be undone. Enter the admin password to unlock these.</p>
+      <input type="password" id="dangerPass" placeholder="Admin password" autocomplete="off">
+      <button class="cta-secondary" id="dangerUnlockBtn" style="color:var(--brick); border-color:var(--brick);">Unlock danger zone</button>
     </div>
-    <button class="cta-secondary" id="resetProgressBtn" style="color:var(--brick); border-color:var(--brick);">Reset progress</button>
-    <button class="cta-secondary" id="wipeBtn" style="color:var(--brick); border-color:var(--brick);">Delete entire deck</button>
+    <div id="dangerZone" style="display:none;">
+      <div id="addFormWrap"></div>
+
+      <div class="section-title" style="margin-top:30px;">Restore / reset</div>
+      <label>Restore from backup JSON</label>
+      <textarea id="restoreText" style="min-height:90px;" placeholder="Paste backup JSON here"></textarea>
+      <button class="cta-secondary" id="restoreBtn">Restore</button>
+      <div class="setting-row" style="border-bottom:none; margin-top:14px;">
+        <div><div class="t">Reset all progress</div><div class="d">Keeps your words, resets every card back to Box 1.</div></div>
+      </div>
+      <button class="cta-secondary" id="resetProgressBtn" style="color:var(--brick); border-color:var(--brick);">Reset progress</button>
+      <button class="cta-secondary" id="wipeBtn" style="color:var(--brick); border-color:var(--brick);">Delete entire deck</button>
+    </div>
   `;
   document.getElementById('remToggle').onchange = async (e)=>{
     if(e.target.checked){
@@ -726,6 +805,17 @@ function renderSettings(){
     const box = document.getElementById('backupBox');
     box.style.display='block';
     box.textContent = JSON.stringify(DATA);
+  };
+
+  document.getElementById('dangerUnlockBtn').onclick = ()=>{
+    const val = document.getElementById('dangerPass').value;
+    if(val === 'admin'){
+      document.getElementById('dangerLocked').style.display = 'none';
+      document.getElementById('dangerZone').style.display = 'block';
+      renderAddForm(document.getElementById('addFormWrap'));
+    } else {
+      showToast('Incorrect admin password');
+    }
   };
   document.getElementById('restoreBtn').onclick = ()=>{
     const txt = document.getElementById('restoreText').value.trim();
@@ -780,8 +870,13 @@ function syncStatusLabel(){
 }
 function renderSyncBadge(){
   const el = document.getElementById('syncBadge');
+  const txt = document.getElementById('syncText');
   if(!el) return;
   el.className = 'sync-badge ' + syncStatus;
+  if(txt){
+    const labels = { synced:'Connected', connecting:'Connecting…', error:'Not connected', misconfigured:'Not connected' };
+    txt.textContent = labels[syncStatus] || '';
+  }
 }
 function escapeHtml(s){
   return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
