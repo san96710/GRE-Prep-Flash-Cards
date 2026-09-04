@@ -180,14 +180,18 @@ nav.tabs .icon{font-size:17px;}
 
 /* ---------- Word list ---------- */
 .word-row{
-  display:flex; align-items:center; gap:12px; padding:12px 4px; border-bottom:1px solid var(--ink-3);
+  display:flex; align-items:flex-start; gap:12px; padding:12px 4px; border-bottom:1px solid var(--ink-3);
 }
-.word-row .tabdot{width:8px; height:8px; border-radius:50%; flex-shrink:0;}
+.word-row .tabdot{width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:6px;}
 .word-row .info{flex:1; min-width:0;}
 .word-row .w{font-family:var(--font-display); font-weight:600; font-size:15.5px;}
 .word-row .m{font-size:12.5px; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
-.word-row .meta{font-family:var(--font-mono); font-size:10px; color:var(--text-dim); text-align:right; flex-shrink:0;}
-.word-row .del{background:none; border:none; color:var(--text-dim); font-size:16px; padding:4px 6px; flex-shrink:0;}
+.word-row .meta-line{font-family:var(--font-mono); font-size:10.5px; color:var(--text-dim); margin-top:5px;}
+.word-row .meta-line .due-now{color:var(--gold);}
+.row-actions{display:flex; flex-direction:column; align-items:center; gap:5px; flex-shrink:0;}
+.row-actions button{background:none; border:1px solid var(--ink-3); color:var(--text-dim); border-radius:3px; font-size:12px; padding:4px 7px; line-height:1;}
+.row-actions button:disabled{opacity:0.25;}
+.row-actions .del{border:none; font-size:16px; padding:2px 6px;}
 
 .search-input{
   width:100%; background:var(--ink-2); border:1px solid var(--ink-3); border-radius:var(--radius);
@@ -598,6 +602,11 @@ function renderManage(){
     return;
   }
   main.innerHTML = `
+    <div class="callout">
+      <b>Current level</b> — which of the 6 review boxes this word is in right now; it goes up only when you answer correctly in Study.<br>
+      <b>Next due by</b> — the date this word will next appear in a Study session.<br>
+      <b>▼</b> — manually move a word down a box if you want to see it sooner. There's no ▲: you can only earn a higher box by getting it right in Study.
+    </div>
     <div class="chip-row" id="chipRow"></div>
     <input class="search-input" id="searchBox" placeholder="Search words or meanings…" value="${escapeHtml(searchQuery)}">
     <div id="resultsWrap"></div>
@@ -641,15 +650,31 @@ function updateResults(){
         saveData(); updateResults();
       }
     };
+    const lower = document.getElementById('lower-'+w.id);
+    if(lower) lower.onclick = ()=> lowerBoxLevel(w);
   });
+}
+function lowerBoxLevel(w){
+  if(w.box<=1) return;
+  w.box -= 1;
+  w.nextReview = addDays(todayStr(), BOX_INTERVALS[w.box]);
+  saveData();
+  updateResults();
+  showToast(`"${w.word}" moved down to Box ${w.box}`);
 }
 function rowHtml(w){
   const due = w.nextReview <= todayStr();
   return `<div class="word-row">
     <span class="tabdot" style="background:${TAB_COLORS[w.box]}"></span>
-    <div class="info"><div class="w">${escapeHtml(w.word)}</div><div class="m">${escapeHtml(w.meaning)}</div></div>
-    <div class="meta">BOX ${w.box}<br>${due? '<span style="color:var(--gold)">due</span>' : formatShortDate(w.nextReview)}</div>
-    <button class="del" id="del-${w.id}">✕</button>
+    <div class="info">
+      <div class="w">${escapeHtml(w.word)}</div>
+      <div class="m">${escapeHtml(w.meaning)}</div>
+      <div class="meta-line">Current level – BOX ${w.box}${due ? ' · <span class="due-now">Due now</span>' : ' · Next due by ' + formatShortDate(w.nextReview)}</div>
+    </div>
+    <div class="row-actions">
+      <button id="lower-${w.id}" ${w.box<=1?'disabled':''} title="Move to a lower box">▼</button>
+      <button class="del" id="del-${w.id}">✕</button>
+    </div>
   </div>`;
 }
 
@@ -798,7 +823,7 @@ function renderSettings(){
     showToast('Syncing…');
     const remote = await pullCloud();
     if(remote){ DATA = Object.assign(DATA, remote); render(); }
-    showToast(syncStatus==='error' ? 'Could not reach Firebase' : 'Up to date');
+    showToast(syncStatus==='error' ? 'Could not reach the database' : 'Up to date');
   };
 
   document.getElementById('exportBtn').onclick = ()=>{
@@ -809,7 +834,7 @@ function renderSettings(){
 
   document.getElementById('dangerUnlockBtn').onclick = ()=>{
     const val = document.getElementById('dangerPass').value;
-    if(val === 'admin'){
+    if(val === 'admin0714'){
       document.getElementById('dangerLocked').style.display = 'none';
       document.getElementById('dangerZone').style.display = 'block';
       renderAddForm(document.getElementById('addFormWrap'));
@@ -863,9 +888,9 @@ setInterval(()=>{
 /* ============ UTIL ============ */
 function syncStatusLabel(){
   if(syncStatus==='misconfigured') return '⚠ firebase-config.js is missing or incomplete — data won\'t sync until it\'s set up.';
-  if(syncStatus==='connecting') return 'Connecting to your Firebase project…';
+  if(syncStatus==='connecting') return 'Connecting to your database project…';
   if(syncStatus==='synced') return '✓ Connected — synced across your devices.';
-  if(syncStatus==='error') return '⚠ Couldn\'t reach Firebase — check your config and internet connection.';
+  if(syncStatus==='error') return '⚠ Couldn\'t reach the database — check your config and internet connection.';
   return '';
 }
 function renderSyncBadge(){
