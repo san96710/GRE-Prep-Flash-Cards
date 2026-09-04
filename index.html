@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Twesha's GRE Prep">
+<title>Twesha's GRE Prep — Word Drill</title>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<script src="firebase-config.js"></script>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,600;0,9..144,700;1,9..144,500&family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap');
+
+:root{
+  --ink: #12131A;
+  --ink-2: #1B1D29;
+  --ink-3: #262838;
+  --paper: #F4EFE3;
+  --paper-shadow: #E3DCC8;
+  --text-on-ink: #E9E6DC;
+  --text-dim: #8B8C9A;
+  --text-on-paper: #211D14;
+  --gold: #C9A648;
+  --teal: #3E8E7E;
+  --brick: #C1502E;
+  --tab-1: #C1502E;
+  --tab-2: #C9A648;
+  --tab-3: #7C8B4A;
+  --tab-4: #3E8E7E;
+  --tab-5: #4A6FA5;
+  --radius: 3px;
+  --font-display: 'Fraunces', serif;
+  --font-body: 'IBM Plex Sans', sans-serif;
+  --font-mono: 'IBM Plex Mono', monospace;
+}
+
+*{box-sizing:border-box; -webkit-tap-highlight-color:transparent;}
+html,body{margin:0; padding:0; height:100%; background:var(--ink); overscroll-behavior-y:none;}
+body{
+  font-family:var(--font-body);
+  color:var(--text-on-ink);
+  display:flex;
+  flex-direction:column;
+  min-height:100vh;
+  min-height:100dvh;
+  padding-top:env(safe-area-inset-top);
+  padding-bottom:env(safe-area-inset-bottom);
+}
+button{font-family:inherit; cursor:pointer;}
+:focus-visible{outline:2px solid var(--gold); outline-offset:2px;}
+
+/* ---------- Header ---------- */
+.topbar{
+  display:flex; align-items:center; justify-content:space-between;
+  padding:18px 20px 10px;
+}
+.brand{
+  font-family:var(--font-display);
+  font-weight:700;
+  font-size:22px;
+  letter-spacing:0.01em;
+  display:flex; align-items:baseline; gap:8px;
+}
+.brand .mark{
+  font-family:var(--font-mono);
+  font-size:11px;
+  color:var(--gold);
+  border:1px solid var(--gold);
+  padding:2px 6px;
+  border-radius:2px;
+  letter-spacing:0.08em;
+}
+.streak{
+  font-family:var(--font-mono);
+  font-size:12px;
+  color:var(--text-dim);
+  display:flex; align-items:center; gap:5px;
+}
+.streak b{color:var(--gold); font-size:14px;}
+.sync-badge{width:8px; height:8px; border-radius:50%; background:var(--text-dim); display:inline-block;}
+.sync-badge.synced{background:var(--teal); box-shadow:0 0 6px var(--teal);}
+.sync-badge.error, .sync-badge.misconfigured{background:var(--brick);}
+.sync-badge.connecting{background:var(--gold); animation:pulse 1.2s infinite;}
+@keyframes pulse{0%,100%{opacity:1;} 50%{opacity:0.3;}}
+
+main{flex:1; overflow-y:auto; padding:6px 20px 100px;}
+
+/* ---------- Nav ---------- */
+nav.tabs{
+  position:fixed; bottom:0; left:0; right:0;
+  background:var(--ink-2);
+  border-top:1px solid var(--ink-3);
+  display:flex;
+  padding-bottom:env(safe-area-inset-bottom);
+  z-index:50;
+}
+nav.tabs button{
+  flex:1; background:none; border:none; color:var(--text-dim);
+  padding:12px 4px 10px; font-size:10.5px; font-family:var(--font-mono);
+  letter-spacing:0.06em; text-transform:uppercase;
+  display:flex; flex-direction:column; align-items:center; gap:4px;
+  border-top:2px solid transparent;
+}
+nav.tabs button.active{color:var(--gold); border-top-color:var(--gold);}
+nav.tabs .icon{font-size:17px;}
+
+/* ---------- Cards / sections ---------- */
+.section-title{
+  font-family:var(--font-mono); font-size:11px; letter-spacing:0.12em;
+  text-transform:uppercase; color:var(--text-dim); margin:22px 0 10px;
+  display:flex; align-items:center; gap:8px;
+}
+.section-title::after{content:''; flex:1; height:1px; background:var(--ink-3);}
+
+.stat-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-top:8px;}
+.stat-card{
+  background:var(--ink-2); border:1px solid var(--ink-3); border-radius:var(--radius);
+  padding:14px 16px;
+}
+.stat-card .num{font-family:var(--font-display); font-size:30px; font-weight:600; line-height:1;}
+.stat-card .label{font-family:var(--font-mono); font-size:10.5px; color:var(--text-dim); text-transform:uppercase; letter-spacing:0.08em; margin-top:6px;}
+
+.cta-primary{
+  width:100%; background:var(--gold); color:#1A1608; border:none; border-radius:var(--radius);
+  padding:16px; font-family:var(--font-display); font-weight:600; font-size:17px; margin-top:16px;
+}
+.cta-primary:disabled{background:var(--ink-3); color:var(--text-dim);}
+.cta-secondary{
+  width:100%; background:transparent; color:var(--text-on-ink); border:1px solid var(--ink-3); border-radius:var(--radius);
+  padding:13px; font-family:var(--font-body); font-weight:500; font-size:14px; margin-top:10px;
+}
+
+.callout{
+  background:var(--ink-2); border-left:3px solid var(--gold); border-radius:0 var(--radius) var(--radius) 0;
+  padding:12px 14px; font-size:13px; color:var(--text-dim); line-height:1.5; margin-top:14px;
+}
+
+/* ---------- Study card (index-card / catalog signature) ---------- */
+.study-wrap{display:flex; flex-direction:column; align-items:center; padding-top:10px;}
+.progress-row{width:100%; display:flex; align-items:center; gap:10px; font-family:var(--font-mono); font-size:11px; color:var(--text-dim); margin-bottom:16px;}
+.progress-track{flex:1; height:3px; background:var(--ink-3); border-radius:2px; overflow:hidden;}
+.progress-fill{height:100%; background:var(--gold); transition:width .25s ease;}
+
+.card-scene{width:100%; max-width:380px; aspect-ratio:5/3.3; perspective:1400px; margin:6px 0 22px;}
+.card-flip{position:relative; width:100%; height:100%; transform-style:preserve-3d; transition:transform .5s cubic-bezier(.4,.2,.2,1); cursor:pointer;}
+.card-flip.flipped{transform:rotateY(180deg);}
+.card-face{
+  position:absolute; inset:0; backface-visibility:hidden;
+  background:var(--paper); color:var(--text-on-paper); border-radius:6px;
+  box-shadow:0 10px 0 -4px var(--paper-shadow), 0 14px 26px rgba(0,0,0,0.45);
+  display:flex; flex-direction:column; padding:22px 24px;
+}
+.card-face .tab{
+  position:absolute; top:-11px; left:22px; font-family:var(--font-mono); font-size:10px; letter-spacing:0.08em;
+  color:#fff; padding:4px 10px 3px; border-radius:3px 3px 0 0;
+}
+.card-face .hole{position:absolute; top:16px; right:16px; width:10px; height:10px; border-radius:50%; background:var(--ink); opacity:0.12;}
+.card-face .kicker{font-family:var(--font-mono); font-size:10px; color:#8a8368; text-transform:uppercase; letter-spacing:0.1em;}
+.card-face .word{font-family:var(--font-display); font-size:clamp(28px,7vw,38px); font-weight:600; margin-top:auto; margin-bottom:auto; line-height:1.1;}
+.card-face .hint{font-family:var(--font-body); font-size:12px; color:#8a8368; text-align:center; margin-top:auto;}
+.card-back{transform:rotateY(180deg);}
+.card-back .meaning{font-family:var(--font-body); font-size:16px; line-height:1.5; margin-top:auto; margin-bottom:auto;}
+
+.answer-row{display:flex; gap:10px; width:100%; max-width:380px;}
+.ans-btn{
+  flex:1; border:none; border-radius:var(--radius); padding:16px 8px; font-family:var(--font-body); font-weight:600; font-size:14px;
+  display:flex; flex-direction:column; align-items:center; gap:3px;
+}
+.ans-btn small{font-family:var(--font-mono); font-weight:400; font-size:10px; opacity:0.75; text-transform:uppercase; letter-spacing:0.06em;}
+.ans-wrong{background:rgba(193,80,46,0.16); color:#E8A98B; border:1px solid rgba(193,80,46,0.4);}
+.ans-right{background:rgba(62,142,126,0.16); color:#9CD9C8; border:1px solid rgba(62,142,126,0.4);}
+.reveal-hint{font-family:var(--font-mono); font-size:11px; color:var(--text-dim); margin-bottom:14px; text-align:center;}
+
+.empty-state{text-align:center; padding:50px 20px; color:var(--text-dim);}
+.empty-state .glyph{font-family:var(--font-display); font-size:40px; color:var(--gold); margin-bottom:10px;}
+.empty-state p{font-size:13.5px; line-height:1.6; max-width:280px; margin:8px auto 0;}
+
+/* ---------- Word list ---------- */
+.word-row{
+  display:flex; align-items:center; gap:12px; padding:12px 4px; border-bottom:1px solid var(--ink-3);
+}
+.word-row .tabdot{width:8px; height:8px; border-radius:50%; flex-shrink:0;}
+.word-row .info{flex:1; min-width:0;}
+.word-row .w{font-family:var(--font-display); font-weight:600; font-size:15.5px;}
+.word-row .m{font-size:12.5px; color:var(--text-dim); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;}
+.word-row .meta{font-family:var(--font-mono); font-size:10px; color:var(--text-dim); text-align:right; flex-shrink:0;}
+.word-row .del{background:none; border:none; color:var(--text-dim); font-size:16px; padding:4px 6px; flex-shrink:0;}
+
+.search-input{
+  width:100%; background:var(--ink-2); border:1px solid var(--ink-3); border-radius:var(--radius);
+  color:var(--text-on-ink); padding:11px 14px; font-family:var(--font-body); font-size:14px; margin-bottom:6px;
+}
+.search-input::placeholder{color:var(--text-dim);}
+
+/* ---------- Add / forms ---------- */
+textarea, input[type=text], input[type=time]{
+  width:100%; background:var(--ink-2); border:1px solid var(--ink-3); border-radius:var(--radius);
+  color:var(--text-on-ink); padding:12px 14px; font-family:var(--font-mono); font-size:13.5px; resize:vertical;
+}
+textarea{min-height:160px; line-height:1.6;}
+label{font-family:var(--font-mono); font-size:11px; text-transform:uppercase; letter-spacing:0.07em; color:var(--text-dim); display:block; margin:16px 0 8px;}
+.delim-row{display:flex; gap:8px;}
+.delim-row button{
+  flex:1; background:var(--ink-2); border:1px solid var(--ink-3); color:var(--text-dim); border-radius:var(--radius);
+  padding:9px; font-family:var(--font-mono); font-size:12px;
+}
+.delim-row button.active{border-color:var(--gold); color:var(--gold);}
+.import-preview{font-family:var(--font-mono); font-size:11.5px; color:var(--text-dim); margin-top:10px; line-height:1.6;}
+
+/* ---------- Settings ---------- */
+.setting-row{display:flex; align-items:center; justify-content:space-between; padding:14px 0; border-bottom:1px solid var(--ink-3);}
+.setting-row .t{font-size:14px; font-weight:500;}
+.setting-row .d{font-size:12px; color:var(--text-dim); margin-top:3px; line-height:1.4; max-width:230px;}
+.switch{position:relative; width:44px; height:25px; flex-shrink:0;}
+.switch input{opacity:0; width:0; height:0;}
+.slider{position:absolute; inset:0; background:var(--ink-3); border-radius:20px; transition:.2s; cursor:pointer;}
+.slider::before{content:''; position:absolute; width:19px; height:19px; left:3px; top:3px; background:var(--text-on-ink); border-radius:50%; transition:.2s;}
+input:checked + .slider{background:var(--teal);}
+input:checked + .slider::before{transform:translateX(19px); background:#fff;}
+
+.toast{
+  position:fixed; bottom:100px; left:20px; right:20px; background:var(--ink-3); color:var(--text-on-ink);
+  padding:13px 16px; border-radius:var(--radius); font-size:13px; text-align:center; z-index:100;
+  box-shadow:0 8px 20px rgba(0,0,0,0.4); border-left:3px solid var(--gold);
+  animation:toastin .25s ease;
+}
+@keyframes toastin{from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:translateY(0);}}
+
+.backup-box{background:var(--ink-2); border:1px solid var(--ink-3); border-radius:var(--radius); padding:12px; font-family:var(--font-mono); font-size:10.5px; color:var(--text-dim); max-height:110px; overflow:auto; word-break:break-all; margin-top:10px;}
+
+@media (prefers-reduced-motion: reduce){
+  .card-flip{transition:none;}
+}
+
+/* ---------- Lock screen ---------- */
+#lockScreen{
+  position:fixed; inset:0; background:var(--ink); z-index:200;
+  display:flex; align-items:center; justify-content:center; padding:24px;
+}
+.lock-card{width:100%; max-width:320px; text-align:center;}
+.lock-card .glyph{font-family:var(--font-display); font-size:34px; color:var(--gold); margin-bottom:6px;}
+.lock-card h1{font-family:var(--font-display); font-size:20px; font-weight:600; margin:0 0 4px;}
+.lock-card .sub{font-size:12.5px; color:var(--text-dim); margin-bottom:22px;}
+.lock-card input{
+  width:100%; text-align:center; letter-spacing:0.3em; font-size:20px;
+  background:var(--ink-2); border:1px solid var(--ink-3); border-radius:var(--radius);
+  color:var(--text-on-ink); padding:14px; font-family:var(--font-mono);
+}
+.lock-card input.shake{animation:shake .35s;}
+@keyframes shake{25%{transform:translateX(-6px);} 75%{transform:translateX(6px);}}
+.lock-card .hint{font-family:var(--font-mono); font-size:11px; color:var(--text-dim); margin-top:14px;}
+.lock-card button{margin-top:16px;}
+</style>
+</head>
+<body>
+
+<div id="lockScreen">
+  <div class="lock-card">
+    <div class="glyph">◆</div>
+    <h1>Twesha's GRE Prep</h1>
+    <div class="sub">Enter your password to continue</div>
+    <input type="password" id="lockInput" inputmode="numeric" maxlength="12" autocomplete="off" placeholder="••••">
+    <button class="cta-primary" id="lockSubmit">Unlock</button>
+    <div class="hint">Hint: Twesha's DOB (MMDD)</div>
+  </div>
+</div>
+
+<div class="topbar">
+  <div class="brand">Twesha's GRE <span class="mark">PREP</span></div>
+  <div style="display:flex; align-items:center; gap:14px;">
+    <span id="syncBadge" class="sync-badge" title="Cloud sync status"></span>
+    <div class="streak">🔥 <b id="streakNum">0</b> day streak</div>
+  </div>
+</div>
+
+<main id="main"></main>
+
+<nav class="tabs">
+  <button data-tab="home" class="active"><span class="icon">◆</span>Home</button>
+  <button data-tab="study"><span class="icon">▤</span>Study</button>
+  <button data-tab="manage"><span class="icon">≡</span>Words</button>
+  <button data-tab="add"><span class="icon">+</span>Add</button>
+  <button data-tab="settings"><span class="icon">⚙</span>Settings</button>
+</nav>
+
+<script>
+/* ============ DATA LAYER (Firebase Firestore only) ============ */
+// Config comes from firebase-config.js, loaded before this script.
+// It must define window.LEXICON_CONFIG = { apiKey, authDomain, projectId, appId, syncCode }
+const BOX_INTERVALS = {1:0, 2:1, 3:3, 4:7, 5:16, 6:32}; // days until next review
+const TAB_COLORS = {1:'var(--tab-1)',2:'var(--tab-1)',3:'var(--tab-3)',4:'var(--tab-4)',5:'var(--tab-5)',6:'var(--tab-5)'};
+
+let DATA = {
+  words: [],           // {id, word, meaning, box, nextReview (ISO date), correct, wrong, lastReviewed}
+  settings: { remindersOn:false, reminderTime:'19:00', lastReminderShown:null },
+  streak: { count:0, lastStudyDate:null },
+  updatedAt: 0
+};
+
+function todayStr(){ return new Date().toISOString().slice(0,10); }
+function uid(){ return 'w' + Date.now().toString(36) + Math.random().toString(36).slice(2,7); }
+function addDays(dateStr, n){
+  const d = new Date(dateStr + 'T00:00:00');
+  d.setDate(d.getDate()+n);
+  return d.toISOString().slice(0,10);
+}
+
+let cloudDoc = null, syncStatus = 'connecting'; // connecting | synced | error | misconfigured
+function initCloud(){
+  const cfg = window.LEXICON_CONFIG;
+  if(!cfg || !cfg.apiKey || !cfg.syncCode){
+    syncStatus = 'misconfigured';
+    return false;
+  }
+  try{
+    if(!firebase.apps.length) firebase.initializeApp(cfg);
+    const db = firebase.firestore();
+    try{ db.enablePersistence({synchronizeTabs:true}); }catch(e){ /* unsupported in this browser, fine */ }
+    cloudDoc = db.collection('lexicon-decks').doc(cfg.syncCode);
+    return true;
+  }catch(e){ console.error(e); syncStatus='error'; return false; }
+}
+async function pullCloud(){
+  if(!cloudDoc) return null;
+  try{
+    const snap = await cloudDoc.get();
+    if(!snap.exists) return null;
+    const remote = snap.data();
+    return remote && remote.payload ? JSON.parse(remote.payload) : null;
+  }catch(e){ console.error('cloud pull failed', e); syncStatus='error'; return null; }
+}
+let cloudPushTimer=null;
+function pushCloud(){
+  if(!cloudDoc) return;
+  clearTimeout(cloudPushTimer);
+  cloudPushTimer = setTimeout(async ()=>{
+    try{
+      await cloudDoc.set({ payload: JSON.stringify(DATA), updatedAt: DATA.updatedAt });
+      syncStatus='synced';
+    }catch(e){ console.error('cloud push failed', e); syncStatus='error'; }
+    renderSyncBadge();
+  }, 400);
+}
+
+async function loadData(){
+  if(!initCloud()){ render(); return; }
+  const remote = await pullCloud();
+  if(remote){ DATA = Object.assign(DATA, remote); }
+  syncStatus = 'synced';
+  render();
+}
+let saveTimer=null;
+function saveData(){
+  DATA.updatedAt = Date.now();
+  clearTimeout(saveTimer);
+  pushCloud();
+}
+
+/* ============ NAV / ROUTER ============ */
+let currentTab = 'home';
+document.querySelectorAll('nav.tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTab = btn.dataset.tab;
+    if(currentTab==='study') session = null;
+    render();
+  });
+});
+
+function render(){
+  document.getElementById('streakNum').textContent = DATA.streak.count;
+  renderSyncBadge();
+  const main = document.getElementById('main');
+  if(currentTab==='home') main.innerHTML = renderHome();
+  else if(currentTab==='study') renderStudy();
+  else if(currentTab==='manage') renderManage();
+  else if(currentTab==='add') renderAdd();
+  else if(currentTab==='settings') renderSettings();
+  wireTabHandlers();
+}
+
+/* ============ HOME ============ */
+function dueWords(){
+  const t = todayStr();
+  return DATA.words.filter(w => w.nextReview <= t);
+}
+function masteredCount(){ return DATA.words.filter(w=>w.box>=5).length; }
+function learningCount(){ return DATA.words.filter(w=>w.box<5).length; }
+
+function renderHome(){
+  const due = dueWords().length;
+  const total = DATA.words.length;
+  if(total===0){
+    return `<div class="empty-state">
+      <div class="glyph">✦</div>
+      <div style="font-family:var(--font-display); font-size:19px;">Your deck is empty</div>
+      <p>Head to the Add tab and paste in your GRE word list to get started.</p>
+    </div>`;
+  }
+  return `
+    <div class="section-title">Today</div>
+    <div class="stat-grid">
+      <div class="stat-card"><div class="num" style="color:var(--gold)">${due}</div><div class="label">Due for review</div></div>
+      <div class="stat-card"><div class="num">${total}</div><div class="label">Total words</div></div>
+      <div class="stat-card"><div class="num" style="color:var(--teal)">${masteredCount()}</div><div class="label">Mastered</div></div>
+      <div class="stat-card"><div class="num" style="color:var(--brick)">${learningCount()}</div><div class="label">Still learning</div></div>
+    </div>
+    <button class="cta-primary" id="goStudy" ${due===0?'disabled':''}>${due>0? `Study ${due} word${due===1?'':'s'}` : 'All caught up ✓'}</button>
+    <button class="cta-secondary" id="goCram">Cram whole deck instead</button>
+    <div class="callout">Words you get right are spaced out further each time (1 → 3 → 7 → 16 → 32 days). Miss one and it resets to daily review.</div>
+  `;
+}
+
+function wireTabHandlers(){
+  const gs = document.getElementById('goStudy');
+  if(gs) gs.onclick = ()=>{ startSession(false); switchTab('study'); };
+  const gc = document.getElementById('goCram');
+  if(gc) gc.onclick = ()=>{ startSession(true); switchTab('study'); };
+}
+function switchTab(name){
+  document.querySelectorAll('nav.tabs button').forEach(b=>b.classList.toggle('active', b.dataset.tab===name));
+  currentTab = name;
+  render();
+}
+
+/* ============ STUDY SESSION ============ */
+let session = null; // {queue:[wordId,...], pos, total, flipped, correctCount}
+
+function buildQueue(cram){
+  const pool = cram ? DATA.words.slice() : dueWords();
+  // shuffle
+  for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
+  return pool.map(w=>w.id);
+}
+function startSession(cram){
+  const queue = buildQueue(cram);
+  session = { queue, pos:0, total:queue.length, flipped:false, correctCount:0, wrongCount:0 };
+}
+
+function renderStudy(){
+  const main = document.getElementById('main');
+  if(!session){
+    const due = dueWords().length;
+    if(DATA.words.length===0){
+      main.innerHTML = `<div class="empty-state"><div class="glyph">✦</div><div style="font-family:var(--font-display); font-size:19px;">No words yet</div><p>Add some words first, then come back to study.</p></div>`;
+      return;
+    }
+    if(due===0){
+      main.innerHTML = `<div class="empty-state">
+        <div class="glyph">✓</div>
+        <div style="font-family:var(--font-display); font-size:19px;">All caught up</div>
+        <p>Nothing is due right now. You can still cram the full deck for extra practice.</p>
+        <button class="cta-primary" id="cramNow" style="max-width:280px;">Cram whole deck</button>
+      </div>`;
+      const btn = document.getElementById('cramNow');
+      if(btn) btn.onclick = ()=>{ startSession(true); render(); };
+      return;
+    }
+    startSession(false);
+  }
+  if(session.pos >= session.total){
+    main.innerHTML = `<div class="empty-state">
+      <div class="glyph">◆</div>
+      <div style="font-family:var(--font-display); font-size:20px;">Session complete</div>
+      <p>${session.correctCount} correct · ${session.wrongCount} to review again soon.</p>
+      <button class="cta-primary" id="doneBtn" style="max-width:280px;">Back to home</button>
+    </div>`;
+    registerStudyToday();
+    document.getElementById('doneBtn').onclick = ()=>{ session=null; switchTab('home'); };
+    return;
+  }
+  const w = DATA.words.find(x=>x.id===session.queue[session.pos]);
+  if(!w){ session.pos++; renderStudy(); return; }
+  const pct = Math.round((session.pos/session.total)*100);
+  main.innerHTML = `
+    <div class="study-wrap">
+      <div class="progress-row">
+        <span>${session.pos+1} / ${session.total}</span>
+        <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
+        <span>BOX ${w.box}</span>
+      </div>
+      <div class="card-scene">
+        <div class="card-flip" id="flipCard">
+          <div class="card-face card-front">
+            <span class="tab" style="background:${TAB_COLORS[w.box]}">BOX ${w.box}</span>
+            <span class="hole"></span>
+            <div class="kicker">Word</div>
+            <div class="word">${escapeHtml(w.word)}</div>
+            <div class="hint">tap card to reveal meaning</div>
+          </div>
+          <div class="card-face card-back">
+            <span class="tab" style="background:${TAB_COLORS[w.box]}">BOX ${w.box}</span>
+            <div class="kicker">Meaning</div>
+            <div class="meaning">${escapeHtml(w.meaning)}</div>
+          </div>
+        </div>
+      </div>
+      <div class="reveal-hint" id="revealHint">Tap the card to flip</div>
+      <div class="answer-row" id="answerRow" style="visibility:hidden;">
+        <button class="ans-btn ans-wrong" id="btnWrong">✕ Missed it<small>back to box 1</small></button>
+        <button class="ans-btn ans-right" id="btnRight">✓ Got it<small>box ${Math.min(w.box+1,6)}</small></button>
+      </div>
+    </div>
+  `;
+  const card = document.getElementById('flipCard');
+  card.onclick = ()=>{
+    card.classList.toggle('flipped');
+    const flipped = card.classList.contains('flipped');
+    document.getElementById('answerRow').style.visibility = flipped ? 'visible' : 'hidden';
+    document.getElementById('revealHint').style.display = flipped ? 'none' : 'block';
+  };
+  document.getElementById('btnWrong').onclick = (e)=>{ e.stopPropagation(); answer(w, false); };
+  document.getElementById('btnRight').onclick = (e)=>{ e.stopPropagation(); answer(w, true); };
+}
+
+function answer(w, correct){
+  const t = todayStr();
+  w.lastReviewed = t;
+  if(correct){
+    w.box = Math.min(w.box+1, 6);
+    w.correct = (w.correct||0)+1;
+    session.correctCount++;
+  } else {
+    w.box = 1;
+    w.wrong = (w.wrong||0)+1;
+    session.wrongCount++;
+    // reinsert 3-5 cards later in THIS session for reinforcement
+    const reinsertAt = Math.min(session.queue.length, session.pos + 3 + Math.floor(Math.random()*3));
+    session.queue.splice(reinsertAt, 0, w.id);
+    session.total = session.queue.length;
+  }
+  w.nextReview = addDays(t, BOX_INTERVALS[w.box]);
+  session.pos++;
+  saveData();
+  render();
+}
+
+function registerStudyToday(){
+  const t = todayStr();
+  if(DATA.streak.lastStudyDate === t) return;
+  if(DATA.streak.lastStudyDate === addDays(t,-1)){ DATA.streak.count++; }
+  else { DATA.streak.count = 1; }
+  DATA.streak.lastStudyDate = t;
+  saveData();
+}
+
+/* ============ MANAGE / WORD LIST ============ */
+let searchQuery = '';
+function renderManage(){
+  const main = document.getElementById('main');
+  if(DATA.words.length===0){
+    main.innerHTML = `<div class="empty-state"><div class="glyph">✦</div><div style="font-family:var(--font-display); font-size:19px;">No words yet</div><p>Words you add will show up here, organized by review box.</p></div>`;
+    return;
+  }
+  const filtered = DATA.words
+    .filter(w => !searchQuery || w.word.toLowerCase().includes(searchQuery) || w.meaning.toLowerCase().includes(searchQuery))
+    .sort((a,b)=> a.word.localeCompare(b.word));
+  main.innerHTML = `
+    <input class="search-input" id="searchBox" placeholder="Search words or meanings…" value="${escapeHtml(searchQuery)}">
+    <div class="section-title">${filtered.length} of ${DATA.words.length} words</div>
+    <div id="listWrap">${filtered.map(rowHtml).join('') || '<p style="color:var(--text-dim); font-size:13px;">No matches.</p>'}</div>
+  `;
+  document.getElementById('searchBox').oninput = (e)=>{ searchQuery = e.target.value.toLowerCase(); renderManage(); };
+  filtered.forEach(w=>{
+    const del = document.getElementById('del-'+w.id);
+    if(del) del.onclick = ()=>{
+      if(confirm(`Delete "${w.word}"?`)){
+        DATA.words = DATA.words.filter(x=>x.id!==w.id);
+        saveData(); renderManage();
+      }
+    };
+  });
+}
+function rowHtml(w){
+  const due = w.nextReview <= todayStr();
+  return `<div class="word-row">
+    <span class="tabdot" style="background:${TAB_COLORS[w.box]}"></span>
+    <div class="info"><div class="w">${escapeHtml(w.word)}</div><div class="m">${escapeHtml(w.meaning)}</div></div>
+    <div class="meta">BOX ${w.box}<br>${due? '<span style="color:var(--gold)">due</span>' : w.nextReview.slice(5)}</div>
+    <button class="del" id="del-${w.id}">✕</button>
+  </div>`;
+}
+
+/* ============ ADD WORDS ============ */
+let importDelim = 'auto';
+function renderAdd(){
+  const main = document.getElementById('main');
+  main.innerHTML = `
+    <div class="section-title">Bulk import</div>
+    <p style="font-size:12.5px; color:var(--text-dim); line-height:1.5;">Upload a .txt or .csv file, or paste directly — one word per line, using a dash, colon, comma or tab between the word and its meaning. Words already in your deck are skipped automatically, so re-uploading a growing file each day is safe.</p>
+    <label style="margin-top:10px;">Upload a file</label>
+    <input type="file" id="fileInput" accept=".txt,.csv,text/plain,text/csv" style="width:100%; background:var(--ink-2); border:1px solid var(--ink-3); border-radius:var(--radius); color:var(--text-dim); padding:11px 14px; font-family:var(--font-mono); font-size:12.5px;">
+    <label style="margin-top:16px;">Or paste text</label>
+    <textarea id="bulkText" placeholder="abstemious - sparing in eating and drinking&#10;laconic - using few words&#10;profligate: recklessly wasteful"></textarea>
+    <div class="import-preview" id="preview"></div>
+    <button class="cta-primary" id="importBtn">Add to deck</button>
+
+    <div class="section-title" style="margin-top:30px;">Add one manually</div>
+    <label>Word</label>
+    <input type="text" id="singleWord" placeholder="e.g. ephemeral">
+    <label>Meaning</label>
+    <input type="text" id="singleMeaning" placeholder="e.g. lasting for a very short time">
+    <button class="cta-secondary" id="addSingleBtn">Add word</button>
+  `;
+  const ta = document.getElementById('bulkText');
+  ta.oninput = ()=> updatePreview(ta.value);
+  document.getElementById('importBtn').onclick = ()=> doImport(ta.value);
+  document.getElementById('fileInput').onchange = (e)=>{
+    const file = e.target.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{
+      ta.value = reader.result;
+      updatePreview(reader.result);
+      showToast(`Loaded ${file.name} — review below, then Add to deck`);
+    };
+    reader.onerror = ()=> showToast('Could not read that file');
+    reader.readAsText(file);
+  };
+  document.getElementById('addSingleBtn').onclick = ()=>{
+    const w = document.getElementById('singleWord').value.trim();
+    const m = document.getElementById('singleMeaning').value.trim();
+    if(!w || !m){ showToast('Enter both a word and a meaning'); return; }
+    addWord(w,m);
+    document.getElementById('singleWord').value='';
+    document.getElementById('singleMeaning').value='';
+    showToast(`Added "${w}"`);
+  };
+}
+function parseLine(line){
+  line = line.trim();
+  if(!line) return null;
+  const seps = [' - ', ':', '\t', ' – ', ','];
+  for(const sep of seps){
+    const idx = line.indexOf(sep);
+    if(idx > 0){
+      return { word: line.slice(0,idx).trim(), meaning: line.slice(idx+sep.length).trim() };
+    }
+  }
+  return null;
+}
+function updatePreview(text){
+  const lines = text.split('\n').filter(l=>l.trim());
+  const parsed = lines.map(parseLine).filter(Boolean);
+  document.getElementById('preview').textContent = lines.length
+    ? `${parsed.length} of ${lines.length} lines recognized`
+    : '';
+}
+function addWord(word, meaning){
+  DATA.words.push({ id:uid(), word, meaning, box:1, nextReview: todayStr(), correct:0, wrong:0, lastReviewed:null });
+  saveData();
+}
+function doImport(text){
+  const lines = text.split('\n').filter(l=>l.trim());
+  const parsed = lines.map(parseLine).filter(Boolean);
+  if(parsed.length===0){ showToast('No valid word — meaning pairs found'); return; }
+  const existing = new Set(DATA.words.map(w=>w.word.toLowerCase()));
+  let added=0, skipped=0;
+  parsed.forEach(p=>{
+    if(existing.has(p.word.toLowerCase())){ skipped++; return; }
+    existing.add(p.word.toLowerCase());
+    addWord(p.word, p.meaning);
+    added++;
+  });
+  showToast(`Added ${added} word${added===1?'':'s'}${skipped? `, skipped ${skipped} duplicate${skipped===1?'':'s'}`:''}`);
+  document.getElementById('bulkText').value='';
+  document.getElementById('preview').textContent='';
+}
+
+/* ============ SETTINGS ============ */
+function renderSettings(){
+  const main = document.getElementById('main');
+  main.innerHTML = `
+    <div class="section-title">Study reminders</div>
+    <div class="setting-row">
+      <div><div class="t">Browser reminders</div><div class="d">Ask for a notification while this tab is open and due words are waiting.</div></div>
+      <label class="switch"><input type="checkbox" id="remToggle" ${DATA.settings.remindersOn?'checked':''}><span class="slider"></span></label>
+    </div>
+    <label>Preferred reminder time</label>
+    <input type="time" id="remTime" value="${DATA.settings.reminderTime}">
+    <div class="callout">iOS Safari only delivers real background notifications to sites added to your Home Screen, and even then it needs a push server — something a self-contained page like this can't provide. What this toggle <i>can</i> do: ping you the moment you open the app if words are due, and remind you again if the app is left open past your chosen time. For a true daily nudge, the most reliable trick is an iPhone Reminder or Shortcuts automation that opens this page every evening.</div>
+
+    <div class="section-title" style="margin-top:26px;">Cloud sync</div>
+    <div class="setting-row" style="border-bottom:none;">
+      <div><div class="t">Status</div><div class="d">${syncStatusLabel()}</div></div>
+    </div>
+    <button class="cta-secondary" id="syncNowBtn">Sync now</button>
+
+    <div class="section-title" style="margin-top:26px;">Backup</div>
+    <p style="font-size:12.5px; color:var(--text-dim);">Your data lives in your Firestore project. It's still worth keeping an occasional copy — paste it back in below to restore.</p>
+    <button class="cta-secondary" id="exportBtn">Show backup JSON</button>
+    <div class="backup-box" id="backupBox" style="display:none;"></div>
+    <label style="margin-top:16px;">Restore from backup JSON</label>
+    <textarea id="restoreText" style="min-height:90px;" placeholder="Paste backup JSON here"></textarea>
+    <button class="cta-secondary" id="restoreBtn">Restore</button>
+
+    <div class="section-title" style="margin-top:26px;">Deck</div>
+    <div class="setting-row" style="border-bottom:none;">
+      <div><div class="t">Reset all progress</div><div class="d">Keeps your words, resets every card back to Box 1.</div></div>
+    </div>
+    <button class="cta-secondary" id="resetProgressBtn" style="color:var(--brick); border-color:var(--brick);">Reset progress</button>
+    <button class="cta-secondary" id="wipeBtn" style="color:var(--brick); border-color:var(--brick);">Delete entire deck</button>
+  `;
+  document.getElementById('remToggle').onchange = async (e)=>{
+    if(e.target.checked){
+      if(!('Notification' in window)){ showToast('Notifications aren\'t supported in this browser'); e.target.checked=false; return; }
+      const perm = await Notification.requestPermission();
+      if(perm !== 'granted'){ showToast('Notification permission was not granted'); e.target.checked=false; return; }
+    }
+    DATA.settings.remindersOn = e.target.checked;
+    saveData();
+  };
+  document.getElementById('remTime').onchange = (e)=>{ DATA.settings.reminderTime = e.target.value; saveData(); };
+
+  document.getElementById('syncNowBtn').onclick = async ()=>{
+    showToast('Syncing…');
+    const remote = await pullCloud();
+    if(remote){ DATA = Object.assign(DATA, remote); render(); }
+    showToast(syncStatus==='error' ? 'Could not reach Firebase' : 'Up to date');
+  };
+
+  document.getElementById('exportBtn').onclick = ()=>{
+    const box = document.getElementById('backupBox');
+    box.style.display='block';
+    box.textContent = JSON.stringify(DATA);
+  };
+  document.getElementById('restoreBtn').onclick = ()=>{
+    const txt = document.getElementById('restoreText').value.trim();
+    if(!txt) return;
+    try{
+      const parsed = JSON.parse(txt);
+      if(!parsed.words) throw new Error('bad shape');
+      DATA = parsed;
+      saveData();
+      showToast('Backup restored');
+      switchTab('home');
+    }catch(e){ showToast('That doesn\'t look like a valid backup'); }
+  };
+  document.getElementById('resetProgressBtn').onclick = ()=>{
+    if(!confirm('Reset every word back to Box 1?')) return;
+    DATA.words.forEach(w=>{ w.box=1; w.nextReview=todayStr(); w.correct=0; w.wrong=0; });
+    saveData(); showToast('Progress reset');
+  };
+  document.getElementById('wipeBtn').onclick = ()=>{
+    if(!confirm('Delete all words permanently? This cannot be undone.')) return;
+    DATA.words = [];
+    saveData(); showToast('Deck deleted'); switchTab('home');
+  };
+}
+
+/* ============ NOTIFICATIONS (best-effort, foreground) ============ */
+function maybeNotify(){
+  if(!DATA.settings.remindersOn) return;
+  if(!('Notification' in window) || Notification.permission !== 'granted') return;
+  const t = todayStr();
+  if(DATA.settings.lastReminderShown === t) return;
+  const due = dueWords().length;
+  if(due === 0) return;
+  new Notification('Twesha\'s GRE Prep — words due', { body: `${due} word${due===1?'':'s'} ready for review.` });
+  DATA.settings.lastReminderShown = t;
+  saveData();
+}
+setInterval(()=>{
+  if(!DATA.settings.remindersOn) return;
+  const now = new Date();
+  const hhmm = now.toTimeString().slice(0,5);
+  if(hhmm === DATA.settings.reminderTime) maybeNotify();
+}, 60000);
+
+/* ============ UTIL ============ */
+function syncStatusLabel(){
+  if(syncStatus==='misconfigured') return '⚠ firebase-config.js is missing or incomplete — data won\'t sync until it\'s set up.';
+  if(syncStatus==='connecting') return 'Connecting to your Firebase project…';
+  if(syncStatus==='synced') return '✓ Connected — synced across your devices.';
+  if(syncStatus==='error') return '⚠ Couldn\'t reach Firebase — check your config and internet connection.';
+  return '';
+}
+function renderSyncBadge(){
+  const el = document.getElementById('syncBadge');
+  if(!el) return;
+  el.className = 'sync-badge ' + syncStatus;
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+function showToast(msg){
+  const el = document.createElement('div');
+  el.className='toast'; el.textContent=msg;
+  document.body.appendChild(el);
+  setTimeout(()=>el.remove(), 2600);
+}
+
+/* ============ ACCESS GATE ============ */
+const APP_PASSWORD = '0714';
+const UNLOCK_KEY = 'lexicon-unlocked';
+function initGate(){
+  const screen = document.getElementById('lockScreen');
+  const input = document.getElementById('lockInput');
+  const submitBtn = document.getElementById('lockSubmit');
+  if(sessionStorage.getItem(UNLOCK_KEY) === 'yes'){
+    screen.style.display = 'none';
+    loadData().then(()=> maybeNotify());
+    return;
+  }
+  const tryUnlock = ()=>{
+    if(input.value === APP_PASSWORD){
+      sessionStorage.setItem(UNLOCK_KEY, 'yes');
+      screen.style.display = 'none';
+      loadData().then(()=> maybeNotify());
+    } else {
+      input.classList.remove('shake'); void input.offsetWidth; input.classList.add('shake');
+      input.value = '';
+    }
+  };
+  submitBtn.onclick = tryUnlock;
+  input.onkeydown = (e)=>{ if(e.key==='Enter') tryUnlock(); };
+  input.focus();
+}
+
+/* ============ INIT ============ */
+initGate();
+</script>
+</body>
+</html>
