@@ -899,7 +899,7 @@ function renderSyncBadge(){
   if(!el) return;
   el.className = 'sync-badge ' + syncStatus;
   if(txt){
-    const labels = { synced:'Connected', connecting:'Connecting…', error:'Not connected', misconfigured:'Not connected' };
+    const labels = { synced:'Database connected', connecting:'Connecting to the database…', error:'Not connected to the database', misconfigured:'Not connected' };
     txt.textContent = labels[syncStatus] || '';
   }
 }
