@@ -774,7 +774,7 @@ function renderSettings(){
     </div>
     <label>Preferred reminder time</label>
     <input type="time" id="remTime" value="${DATA.settings.reminderTime}">
-    <div class="callout">iOS Safari only delivers real background notifications to sites added to your Home Screen, and even then it needs a push server — something a self-contained page like this can't provide. What this toggle <i>can</i> do: ping you the moment you open the app if words are due, and remind you again if the app is left open past your chosen time. For a true daily nudge, the most reliable trick is an iPhone Reminder or Shortcuts automation that opens this page every evening.</div>
+    <div class="callout">iOS Safari only delivers real background notifications to sites added to your Home Screen.</div>
 
     <div class="section-title" style="margin-top:26px;">Cloud sync</div>
     <div class="setting-row" style="border-bottom:none;">
@@ -784,7 +784,7 @@ function renderSettings(){
     <div class="callout">Twesha — once you're using this on another device, tap <b>Sync now</b> here first to pull down your latest words and progress before you start studying.</div>
 
     <div class="section-title" style="margin-top:26px;">Backup</div>
-    <p style="font-size:12.5px; color:var(--text-dim);">Your data lives in your Firestore project. It's still worth keeping an occasional copy.</p>
+    <p style="font-size:12.5px; color:var(--text-dim);">Backend data lives in the database.</p>
     <button class="cta-secondary" id="exportBtn">Show backup JSON</button>
     <div class="backup-box" id="backupBox" style="display:none;"></div>
 
