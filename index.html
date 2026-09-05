@@ -302,7 +302,7 @@ input:checked + .slider::before{transform:translateX(19px); background:#fff;}
 /* ============ DATA LAYER (Firebase Firestore only) ============ */
 // Config comes from firebase-config.js, loaded before this script.
 // It must define window.LEXICON_CONFIG = { apiKey, authDomain, projectId, appId, syncCode }
-const BOX_INTERVALS = {1:0, 2:1, 3:3, 4:7, 5:16, 6:32}; // days until next review
+const BOX_INTERVALS = {1:0, 2:1, 3:2, 4:4, 5:7, 6:12}; // days until next review
 const TAB_COLORS = {1:'var(--tab-1)',2:'var(--tab-1)',3:'var(--tab-3)',4:'var(--tab-4)',5:'var(--tab-5)',6:'var(--tab-5)'};
 
 let DATA = {
@@ -425,8 +425,8 @@ function renderHome(){
       Twesha, read the below — this is based on the <b>Leitner system</b>, a spaced-repetition study method.<br><br>
       <b>How the boxes work:</b> every word sits in a box from 1 to 6, and that box decides when it comes back around.<br><br>
       <b>Box 1</b> — new or just missed, reviewed daily.<br>
-      <b>Box 2–4</b> — you've gotten it right before; it comes back every 1, 3, then 7 days.<br>
-      <b>Box 5–6</b> — you've gotten it right several times in a row; it's reviewed every 16–32 days and counts as <b>Mastered</b> in your stats.<br><br>
+      <b>Box 2–4</b> — you've gotten it right before; it comes back every 1, 2, then 4 days.<br>
+      <b>Box 5–6</b> — you've gotten it right several times in a row; it's reviewed every 7–12 days and counts as <b>Mastered</b> in your stats.<br><br>
       Get a word right → it moves up a box and you see it less often. Get it wrong → it drops straight back to Box 1 and you see it daily again until it sticks.
     </div>
   `;
