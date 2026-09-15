@@ -162,7 +162,8 @@ nav.tabs .icon{font-size:17px;}
 .card-face .word{font-family:var(--font-display); font-size:clamp(28px,7vw,38px); font-weight:600; margin-top:auto; margin-bottom:auto; line-height:1.1;}
 .card-face .hint{font-family:var(--font-body); font-size:12px; color:#8a8368; text-align:center; margin-top:auto;}
 .card-back{transform:rotateY(180deg);}
-.card-back .meaning{font-family:var(--font-body); font-size:16px; line-height:1.5; margin-top:auto; margin-bottom:auto;}
+.card-back .word{margin-bottom:0;}
+.card-back .meaning{font-family:var(--font-body); font-size:16px; line-height:1.4; margin-top:10px; margin-bottom:auto; color:#4a4436;}
 
 .answer-row{display:flex; gap:10px; width:100%; max-width:380px;}
 .ans-btn{
@@ -521,7 +522,9 @@ function renderStudy(){
           </div>
           <div class="card-face card-back">
             <span class="tab" style="background:${TAB_COLORS[w.box]}">BOX ${w.box}</span>
-            <div class="kicker">Meaning</div>
+            <span class="hole"></span>
+            <div class="kicker">Word</div>
+            <div class="word">${escapeHtml(w.word)}</div>
             <div class="meaning">${escapeHtml(w.meaning)}</div>
           </div>
         </div>
