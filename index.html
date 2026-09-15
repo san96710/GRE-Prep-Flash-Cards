@@ -303,7 +303,7 @@ input:checked + .slider::before{transform:translateX(19px); background:#fff;}
 /* ============ DATA LAYER (Firebase Firestore only) ============ */
 // Config comes from firebase-config.js, loaded before this script.
 // It must define window.LEXICON_CONFIG = { apiKey, authDomain, projectId, appId, syncCode }
-const BOX_INTERVALS = {1:0, 2:1, 3:2, 4:4, 5:7, 6:12}; // days until next review
+const BOX_INTERVALS = {1:0, 2:1, 3:2, 4:4, 5:5, 6:7}; // days until next review
 const TAB_COLORS = {1:'var(--tab-1)',2:'var(--tab-1)',3:'var(--tab-3)',4:'var(--tab-4)',5:'var(--tab-5)',6:'var(--tab-5)'};
 
 let DATA = {
@@ -363,7 +363,21 @@ async function loadData(){
   const remote = await pullCloud();
   if(remote){ DATA = Object.assign(DATA, remote); }
   syncStatus = 'synced';
+  migrateCycleStart();
   render();
+}
+// Words saved before the absolute-day schedule existed have no cycleStart.
+// Derive one that keeps their currently-stored nextReview exactly as-is,
+// so migrating doesn't suddenly move anything's due date.
+function migrateCycleStart(){
+  let changed = false;
+  DATA.words.forEach(w=>{
+    if(!w.cycleStart){
+      w.cycleStart = addDays(w.nextReview, -BOX_INTERVALS[w.box]);
+      changed = true;
+    }
+  });
+  if(changed) saveData();
 }
 let saveTimer=null;
 function saveData(){
@@ -427,7 +441,7 @@ function renderHome(){
       <b>How the boxes work:</b> every word sits in a box from 1 to 6, and that box decides when it comes back around.<br><br>
       <b>Box 1</b> — new or just missed, reviewed daily.<br>
       <b>Box 2–4</b> — you've gotten it right before; it comes back every 1, 2, then 4 days.<br>
-      <b>Box 5–6</b> — you've gotten it right several times in a row; it's reviewed every 7–12 days and counts as <b>Mastered</b> in your stats.<br><br>
+      <b>Box 5–6</b> — you've gotten it right several times in a row; it's reviewed every 5–7 days and counts as <b>Mastered</b> in your stats.<br><br>
       Get a word right → it moves up a box and you see it less often. Get it wrong → it drops straight back to Box 1 and you see it daily again until it sticks.
     </div>
   `;
@@ -551,14 +565,20 @@ function answer(w, correct){
   const t = todayStr();
   w.lastReviewed = t;
   if(correct){
+    const wasMaxed = w.box >= 6;
     w.box = Math.min(w.box+1, 6);
     w.correct = (w.correct||0)+1;
     session.correctCount++;
     session.doneWords.add(w.id);
+    // Once a word is already at the top box, re-anchor on each correct answer
+    // so it keeps cycling every BOX_INTERVALS[6] days instead of freezing on
+    // one fixed calendar date forever.
+    if(wasMaxed) w.cycleStart = t;
   } else {
     w.box = 1;
     w.wrong = (w.wrong||0)+1;
     session.wrongCount++;
+    w.cycleStart = t; // missing a word restarts its 0/1/2/4/5/7-day cycle from today
     // Space the repeat out ~20-25 cards later, but never further than the cards actually left.
     const remaining = session.queue.length - (session.pos + 1);
     const desiredGap = 20 + Math.floor(Math.random()*6); // 20-25
@@ -566,7 +586,7 @@ function answer(w, correct){
     const reinsertAt = Math.min(session.queue.length, session.pos + gap);
     session.queue.splice(reinsertAt, 0, w.id);
   }
-  w.nextReview = addDays(t, BOX_INTERVALS[w.box]);
+  w.nextReview = addDays(w.cycleStart, BOX_INTERVALS[w.box]);
   session.pos++;
   saveData();
   render();
@@ -664,7 +684,7 @@ function updateResults(){
 function lowerBoxLevel(w){
   if(w.box<=1) return;
   w.box -= 1;
-  w.nextReview = addDays(todayStr(), BOX_INTERVALS[w.box]);
+  w.nextReview = addDays(w.cycleStart || todayStr(), BOX_INTERVALS[w.box]);
   saveData();
   updateResults();
   showToast(`"${w.word}" moved down to Box ${w.box}`);
@@ -750,7 +770,7 @@ function updatePreview(text){
     : '';
 }
 function addWord(word, meaning){
-  DATA.words.push({ id:uid(), word, meaning, box:1, nextReview: todayStr(), correct:0, wrong:0, lastReviewed:null });
+  DATA.words.push({ id:uid(), word, meaning, box:1, nextReview: todayStr(), cycleStart: todayStr(), correct:0, wrong:0, lastReviewed:null });
   saveData();
 }
 function doImport(text){
@@ -861,7 +881,7 @@ function renderSettings(){
   };
   document.getElementById('resetProgressBtn').onclick = ()=>{
     if(!confirm('Reset every word back to Box 1?')) return;
-    DATA.words.forEach(w=>{ w.box=1; w.nextReview=todayStr(); w.correct=0; w.wrong=0; });
+    DATA.words.forEach(w=>{ w.box=1; w.cycleStart=todayStr(); w.nextReview=todayStr(); w.correct=0; w.wrong=0; });
     saveData(); showToast('Progress reset');
   };
   document.getElementById('wipeBtn').onclick = ()=>{
