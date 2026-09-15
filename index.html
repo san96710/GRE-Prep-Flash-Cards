@@ -920,19 +920,23 @@ function showToast(msg){
 
 /* ============ ACCESS GATE ============ */
 const APP_PASSWORD = '0714';
-const UNLOCK_KEY = 'lexicon-unlocked';
+const UNLOCK_KEY = 'lexicon-unlocked-at';
+const UNLOCK_DAYS = 7;
 function initGate(){
   const screen = document.getElementById('lockScreen');
   const input = document.getElementById('lockInput');
   const submitBtn = document.getElementById('lockSubmit');
-  if(sessionStorage.getItem(UNLOCK_KEY) === 'yes'){
+
+  const unlockedAt = parseInt(localStorage.getItem(UNLOCK_KEY) || '0', 10);
+  const stillValid = unlockedAt && (Date.now() - unlockedAt) < UNLOCK_DAYS * 24 * 60 * 60 * 1000;
+  if(stillValid){
     screen.style.display = 'none';
     loadData().then(()=> maybeNotify());
     return;
   }
   const tryUnlock = ()=>{
     if(input.value === APP_PASSWORD){
-      sessionStorage.setItem(UNLOCK_KEY, 'yes');
+      localStorage.setItem(UNLOCK_KEY, String(Date.now()));
       screen.style.display = 'none';
       loadData().then(()=> maybeNotify());
     } else {
