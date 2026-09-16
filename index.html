@@ -279,9 +279,45 @@ input:checked + .slider::before{transform:translateX(19px); background:#fff;}
 @keyframes shake{25%{transform:translateX(-6px);} 75%{transform:translateX(6px);}}
 .lock-card .hint{font-family:var(--font-mono); font-size:11px; color:var(--text-dim); margin-top:14px;}
 .lock-card button{margin-top:16px;}
+
+/* ---------- Launch splash ---------- */
+#splashScreen{
+  position:fixed; inset:0; background:var(--ink); z-index:300;
+  display:flex; align-items:center; justify-content:center; flex-direction:column;
+  transition:opacity .6s ease, visibility .6s ease;
+}
+#splashScreen.hide{ opacity:0; visibility:hidden; pointer-events:none; }
+.splash-heart{
+  font-size:38px; color:red;
+  animation:splashPulse 1.4s ease-in-out infinite;
+  opacity:0; animation-fill-mode:forwards;
+  animation-name:splashHeartIn, splashPulse;
+  animation-duration:.6s, 1.4s;
+  animation-delay:0s, .6s;
+  animation-iteration-count:1, infinite;
+  animation-timing-function:ease-out, ease-in-out;
+}
+.splash-line1, .splash-line2{
+  font-family:var(--font-display); text-align:center; opacity:0;
+  animation:splashTextIn .7s ease-out forwards;
+}
+.splash-line1{ font-size:15px; color:var(--text-dim); letter-spacing:0.04em; margin-top:18px; animation-delay:.5s; }
+.splash-line2{ font-size:26px; font-weight:600; color:var(--text-on-ink); margin-top:4px; animation-delay:.85s; }
+@keyframes splashHeartIn{ from{opacity:0; transform:scale(0.6);} to{opacity:1; transform:scale(1);} }
+@keyframes splashPulse{ 0%,100%{transform:scale(1);} 50%{transform:scale(1.12);} }
+@keyframes splashTextIn{ from{opacity:0; transform:translateY(6px);} to{opacity:1; transform:translateY(0);} }
+@media (prefers-reduced-motion: reduce){
+  .splash-heart, .splash-line1, .splash-line2{ animation:none; opacity:1; }
+}
 </style>
 </head>
 <body>
+
+<div id="splashScreen">
+  <div class="splash-heart">♥</div>
+  <div class="splash-line1">Made with love,</div>
+  <div class="splash-line2">for Twesha</div>
+</div>
 
 <div id="lockScreen">
   <div class="lock-card">
@@ -509,7 +545,7 @@ function renderModePicker(){
   const boxCounts = {};
   for(let i=1;i<=6;i++) boxCounts[i] = DATA.words.filter(w=>w.box===i).length;
   const options = [
-    {id:'due', name:'Mixed — due today', desc:'Baby this is standard/existing spaced-repetition style, whatever is due right now.', count:due},
+    {id:'due', name:'Mixed — due today', desc:'Recommended: spaced-repetition style, whatever is due right now.', count:due},
     {id:'cram', name:'Cram whole deck', desc:'Every word in your deck, regardless of schedule.', count:total},
     {id:'box1', name:'Box 1 only', desc:'', count:boxCounts[1]},
     {id:'box2', name:'Box 2 only', desc:'', count:boxCounts[2]},
@@ -520,7 +556,8 @@ function renderModePicker(){
   ];
   const picked = options.find(o=>o.id===studyPickMode) || options[0];
   return `
-    <div class="section-title">Baby, Choose what to study</div>
+    <div class="section-title">Choose what to study</div>
+    <p style="font-family:var(--font-display); font-size:16px; color:var(--text-on-ink); margin:0 0 14px;">Ready when you are, Baby ✦</p>
     ${options.map(o=>`
       <button class="mode-row ${studyPickMode===o.id?'active':''}" data-id="${o.id}" ${o.count===0?'disabled':''}>
         <span class="mode-name">${escapeHtml(o.name)}${o.desc?`<span class="mode-desc">${escapeHtml(o.desc)}</span>`:''}</span>
@@ -558,7 +595,6 @@ function renderStudy(){
       <p>${session.correctCount} correct · ${session.wrongCount} to review again soon.</p>
       <button class="cta-primary" id="doneBtn" style="max-width:280px;">Back to home</button>
     </div>`;
-    registerStudyToday();
     document.getElementById('doneBtn').onclick = ()=>{ session=null; switchTab('home'); };
     return;
   }
@@ -642,6 +678,7 @@ function answer(w, correct){
   }
   w.nextReview = addDays(w.cycleStart, BOX_INTERVALS[w.box]);
   session.pos++;
+  registerStudyToday();
   saveData();
   render();
 }
@@ -1024,6 +1061,13 @@ function initGate(){
 }
 
 /* ============ INIT ============ */
+(function(){
+  const splash = document.getElementById('splashScreen');
+  setTimeout(()=>{
+    splash.classList.add('hide');
+    setTimeout(()=> splash.remove(), 700);
+  }, 1800);
+})();
 initGate();
 </script>
 </body>
