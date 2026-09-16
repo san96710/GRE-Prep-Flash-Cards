@@ -545,7 +545,7 @@ function renderModePicker(){
   const boxCounts = {};
   for(let i=1;i<=6;i++) boxCounts[i] = DATA.words.filter(w=>w.box===i).length;
   const options = [
-    {id:'due', name:'Mixed — due today', desc:'Recommended: spaced-repetition style, whatever is due right now.', count:due},
+    {id:'due', name:'Mixed — due today', desc:'Baby this is standard/existing spaced-repetition style, whatever is due right now.', count:due},
     {id:'cram', name:'Cram whole deck', desc:'Every word in your deck, regardless of schedule.', count:total},
     {id:'box1', name:'Box 1 only', desc:'', count:boxCounts[1]},
     {id:'box2', name:'Box 2 only', desc:'', count:boxCounts[2]},
@@ -556,8 +556,7 @@ function renderModePicker(){
   ];
   const picked = options.find(o=>o.id===studyPickMode) || options[0];
   return `
-    <div class="section-title">Choose what to study</div>
-    <p style="font-family:var(--font-display); font-size:16px; color:var(--text-on-ink); margin:0 0 14px;">Ready when you are, Baby ✦</p>
+    <div class="section-title">Baby, Choose what to study</div>
     ${options.map(o=>`
       <button class="mode-row ${studyPickMode===o.id?'active':''}" data-id="${o.id}" ${o.count===0?'disabled':''}>
         <span class="mode-name">${escapeHtml(o.name)}${o.desc?`<span class="mode-desc">${escapeHtml(o.desc)}</span>`:''}</span>
