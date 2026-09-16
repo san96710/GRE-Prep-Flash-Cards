@@ -143,6 +143,7 @@ nav.tabs .icon{font-size:17px;}
 .progress-row{width:100%; display:flex; align-items:center; gap:10px; font-family:var(--font-mono); font-size:11px; color:var(--text-dim); margin-bottom:16px;}
 .progress-track{flex:1; height:3px; background:var(--ink-3); border-radius:2px; overflow:hidden;}
 .progress-fill{height:100%; background:var(--gold); transition:width .25s ease;}
+.switch-mode-link{align-self:flex-start; background:none; border:none; color:var(--text-dim); font-family:var(--font-mono); font-size:11px; padding:0 0 10px; text-decoration:underline; text-underline-offset:2px;}
 
 .card-scene{width:100%; max-width:380px; aspect-ratio:5/3.3; perspective:1400px; margin:6px 0 22px;}
 .card-flip{position:relative; width:100%; height:100%; transform-style:preserve-3d; transition:transform .5s cubic-bezier(.4,.2,.2,1); cursor:pointer;}
@@ -207,6 +208,18 @@ nav.tabs .icon{font-size:17px;}
   border-radius:20px; padding:7px 13px; font-family:var(--font-mono); font-size:11.5px; white-space:nowrap;
 }
 .chip.active{border-color:var(--gold); color:var(--gold); background:rgba(201,166,72,0.1);}
+
+.mode-row{
+  width:100%; display:flex; align-items:center; justify-content:space-between;
+  background:var(--ink-2); border:1px solid var(--ink-3); border-radius:var(--radius);
+  padding:14px 16px; margin-top:8px; color:var(--text-on-ink); font-family:var(--font-body); font-size:14px;
+}
+.mode-row .mode-name{display:flex; flex-direction:column; align-items:flex-start; gap:2px;}
+.mode-row .mode-desc{font-size:11.5px; color:var(--text-dim); font-weight:400;}
+.mode-row .mode-count{font-family:var(--font-mono); color:var(--text-dim); font-size:13px; flex-shrink:0; margin-left:10px;}
+.mode-row.active{border-color:var(--gold); background:rgba(201,166,72,0.08);}
+.mode-row.active .mode-count{color:var(--gold);}
+.mode-row:disabled{opacity:0.35;}
 
 /* ---------- Add / forms ---------- */
 textarea, input[type=text], input[type=time]{
@@ -449,9 +462,9 @@ function renderHome(){
 
 function wireTabHandlers(){
   const gs = document.getElementById('goStudy');
-  if(gs) gs.onclick = ()=>{ startSession(false); switchTab('study'); };
+  if(gs) gs.onclick = ()=>{ startSession('due'); switchTab('study'); };
   const gc = document.getElementById('goCram');
-  if(gc) gc.onclick = ()=>{ startSession(true); switchTab('study'); };
+  if(gc) gc.onclick = ()=>{ startSession('cram'); switchTab('study'); };
   const tD = document.getElementById('tileDue');
   if(tD) tD.onclick = ()=>{ wordFilter='due'; searchQuery=''; switchTab('manage'); };
   const tT = document.getElementById('tileTotal');
@@ -469,16 +482,60 @@ function switchTab(name){
 
 /* ============ STUDY SESSION ============ */
 let session = null; // {queue:[wordId,...], pos, total, flipped, correctCount}
+let studyPickMode = 'due';
 
-function buildQueue(cram){
-  const pool = cram ? DATA.words.slice() : dueWords();
+function wordsForMode(mode){
+  if(mode==='cram') return DATA.words.slice();
+  if(mode && mode.startsWith('box')){
+    const n = parseInt(mode.slice(3));
+    return DATA.words.filter(w=>w.box===n);
+  }
+  return dueWords(); // 'due' and default
+}
+function buildQueue(mode){
+  const pool = wordsForMode(mode);
   // shuffle
   for(let i=pool.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [pool[i],pool[j]]=[pool[j],pool[i]]; }
   return pool.map(w=>w.id);
 }
-function startSession(cram){
-  const queue = buildQueue(cram);
-  session = { queue, pos:0, total:queue.length, doneWords:new Set(), correctCount:0, wrongCount:0, dateStarted: todayStr() };
+function startSession(mode){
+  const queue = buildQueue(mode);
+  session = { queue, pos:0, total:queue.length, doneWords:new Set(), correctCount:0, wrongCount:0, dateStarted: todayStr(), mode };
+}
+
+function renderModePicker(){
+  const due = dueWords().length;
+  const total = DATA.words.length;
+  const boxCounts = {};
+  for(let i=1;i<=6;i++) boxCounts[i] = DATA.words.filter(w=>w.box===i).length;
+  const options = [
+    {id:'due', name:'Mixed — due today', desc:'Baby this is standard/existing spaced-repetition style, whatever is due right now.', count:due},
+    {id:'cram', name:'Cram whole deck', desc:'Every word in your deck, regardless of schedule.', count:total},
+    {id:'box1', name:'Box 1 only', desc:'', count:boxCounts[1]},
+    {id:'box2', name:'Box 2 only', desc:'', count:boxCounts[2]},
+    {id:'box3', name:'Box 3 only', desc:'', count:boxCounts[3]},
+    {id:'box4', name:'Box 4 only', desc:'', count:boxCounts[4]},
+    {id:'box5', name:'Box 5 only', desc:'', count:boxCounts[5]},
+    {id:'box6', name:'Box 6 only', desc:'', count:boxCounts[6]},
+  ];
+  const picked = options.find(o=>o.id===studyPickMode) || options[0];
+  return `
+    <div class="section-title">Baby, Choose what to study</div>
+    ${options.map(o=>`
+      <button class="mode-row ${studyPickMode===o.id?'active':''}" data-id="${o.id}" ${o.count===0?'disabled':''}>
+        <span class="mode-name">${escapeHtml(o.name)}${o.desc?`<span class="mode-desc">${escapeHtml(o.desc)}</span>`:''}</span>
+        <span class="mode-count">${o.count}</span>
+      </button>
+    `).join('')}
+    <button class="cta-primary" id="startPickedBtn" ${picked.count===0?'disabled':''}>Start studying</button>
+  `;
+}
+function wireModePicker(){
+  document.querySelectorAll('.mode-row').forEach(btn=>{
+    btn.onclick = ()=>{ studyPickMode = btn.dataset.id; renderStudy(); };
+  });
+  const startBtn = document.getElementById('startPickedBtn');
+  if(startBtn) startBtn.onclick = ()=>{ startSession(studyPickMode); render(); };
 }
 
 function renderStudy(){
@@ -486,23 +543,13 @@ function renderStudy(){
   // A session from a previous calendar day is stale — today's due list has moved on.
   if(session && session.dateStarted !== todayStr()) session = null;
   if(!session){
-    const due = dueWords().length;
     if(DATA.words.length===0){
       main.innerHTML = `<div class="empty-state"><div class="glyph">✦</div><div style="font-family:var(--font-display); font-size:19px;">No words yet</div><p>Add some words first, then come back to study.</p></div>`;
       return;
     }
-    if(due===0){
-      main.innerHTML = `<div class="empty-state">
-        <div class="glyph">✓</div>
-        <div style="font-family:var(--font-display); font-size:19px;">All caught up</div>
-        <p>Nothing is due right now. You can still cram the full deck for extra practice.</p>
-        <button class="cta-primary" id="cramNow" style="max-width:280px;">Cram whole deck</button>
-      </div>`;
-      const btn = document.getElementById('cramNow');
-      if(btn) btn.onclick = ()=>{ startSession(true); render(); };
-      return;
-    }
-    startSession(false);
+    main.innerHTML = renderModePicker();
+    wireModePicker();
+    return;
   }
   if(session.pos >= session.queue.length){
     main.innerHTML = `<div class="empty-state">
@@ -518,10 +565,13 @@ function renderStudy(){
   const w = DATA.words.find(x=>x.id===session.queue[session.pos]);
   if(!w){ session.pos++; renderStudy(); return; }
   const pct = Math.round((session.doneWords.size/session.total)*100);
+  const modeLabels = { due:'due today', cram:'in cram session', box1:'in Box 1', box2:'in Box 2', box3:'in Box 3', box4:'in Box 4', box5:'in Box 5', box6:'in Box 6' };
+  const modeLabel = modeLabels[session.mode] || 'in session';
   main.innerHTML = `
     <div class="study-wrap">
+      <button id="switchModeBtn" class="switch-mode-link">↺ Switch study set</button>
       <div class="progress-row">
-        <span>${session.doneWords.size} / ${session.total} due today</span>
+        <span>${session.doneWords.size} / ${session.total} ${modeLabel}</span>
         <div class="progress-track"><div class="progress-fill" style="width:${pct}%"></div></div>
         <span>BOX ${w.box}</span>
       </div>
@@ -559,6 +609,10 @@ function renderStudy(){
   };
   document.getElementById('btnWrong').onclick = (e)=>{ e.stopPropagation(); answer(w, false); };
   document.getElementById('btnRight').onclick = (e)=>{ e.stopPropagation(); answer(w, true); };
+  document.getElementById('switchModeBtn').onclick = ()=>{
+    session = null;
+    render();
+  };
 }
 
 function answer(w, correct){
